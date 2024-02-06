@@ -1,0 +1,50 @@
+---
+title: "descomposición de series"
+format: docx
+author: dlm
+---
+
+```{r}
+library (tidyverse)
+library(fpp3)
+
+
+empleo_tsbl <- us_employment |> 
+  filter(year(Month) >= 1990, Title == "Retail Trade") |> 
+  select(-Series_ID)
+
+#empleo_decomp |> 
+ # write_csv("datos/empleo_eeuu.csv")
+```
+
+##Classical decomposition
+```{r}
+empleo_decomp <- empleo_tsbl |> 
+  model(
+    clasica = classical_decomposition(Employed,
+                                      type = "additive")
+  )
+```
+##Componentes
+```{r}
+empleo_components <-  empleo_decomp |> 
+  components()
+
+empleo_components
+```
+```{r}
+empleo_components |>
+  autoplot()
+```
+```{r}
+empleo_stl <- empleo_tsbl |> 
+  model(
+    stl = STL(Employed),
+      stl2 = STL(Employed ~ trend(window = 7) + season(window = "periodic"))
+  )
+
+empleo_stl |> 
+  components() |> 
+  autoplot()
+```
+
