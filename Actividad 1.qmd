@@ -10,7 +10,7 @@ library (tidyverse)
 library(fpp3)
 ```
 
-#1 
+# 1 
 Tomando el PIB de cada país, GDP, contenido en la tabla global_economy, grafique el PIB per cápita a lo largo del tiempo. ¿Cómo ha sido la evolución de la economía de los países en el tiempo? ¿Cuál país tiene el mayor PIB per cápita? (Les recomiendo quitar la leyenda del gráfico, incluyendo theme(legend.position = "none"))
 
 ```{r}
@@ -32,10 +32,10 @@ global_economy |>
   arrange(desc(mean_gdppc))
 ```
 
-#2 
+# 2 
 Grafique las siguientes series de tiempo y transfórmelas y/o ajústelas si lo considera necesario. ¿Qué efecto tuvo la transformación?
 
-##i 
+## i 
 PIB de EEUU, de global_economy.
 
 ```{r}
@@ -60,7 +60,7 @@ log_PIB_USA
 
 Al aplicar una transformación logarítmica a los datos sobre el PIB de Estados Unidos, podemos ver un cambio en presentación de los datos. Sin la transformación los datos aparentan ser exponenciales, mientras que despues de aplicarles un logaritmo parece ser que los datos tienden a ser más lineales.
 
-##ii 
+## ii 
 PIB de México, también de global_economy.
 
 ```{r}
@@ -86,7 +86,7 @@ log_PIB_MEX
 Al igual que con la gráfica del PIB de Estados Unidos, al aplicar una transformación logarítmica a los datos sobre el PIB de México, podemos ver un cambio en presentación de los datos. Sin la transformación los datos aparentan ser exponenciales, mientras que despues de aplicarles un logaritmo parece ser que los datos tienden a ser más lineales.
 
 
-##iii 
+## iii 
 Demanda de electricidad en el estado de Victoria (Australia), de vic_elec.
 
 ```{r}
@@ -105,7 +105,7 @@ vic_elec |>
 
 Tras aplicar una transformación logaritmica a los datos de la demanda de electricidad en el estado de Victoria no se puede ver ningún cambio aparente en los datos. Lo único que sucede es un cambio de magnitud en el eje y, presentando una proporcion en varianza menor a la que mostraba en los datos originales.
 
-#3 
+# 3 
 ¿Es útil realizar una transformación de Box-Cox a los datos canadian_gas? ¿Por qué sí o por qué no?
 
 ```{r}
@@ -126,10 +126,12 @@ canadian_gas |>
   ggtitle("Demanda de gas en Canada transformados con Box-Cox")
 ```
 
-#4 
+Una transformación Box-Cox a los datos de consumo de gas en canada no tienen ningun efecto significativo, ya que el proposito de una tranformación es el de evitar que la varianza de los datos sea tan acentuada. Aunque numéricamente, la transformación, disminuye la asentuación en la estacionalidad, ésta se sigue mostrando en una proporción igual a la de los datos originales, por lo que se puede concluir que la transformación Box-Cox no tiene ninguna utlidad. 
+
+# 4 
 El dataset fma::plastics tiene información de las ventas mensuales (medidas en miles) del producto A para un productor de plásticos, a lo largo de cinco años.
 
-##i 
+## i 
 Grafique la serie de tiempo para el producto A. ¿Identifica algún componente de tendencia-ciclo y/o estacional?
 
 ```{r}
@@ -138,7 +140,9 @@ fma::plastics |>
   ggtitle("Ventas mensuales de producto A en miles")
 ```
 
-##ii 
+La grafica muestra una tendencia aparentemente lineal y positiva. Además, muestra una estacionalidad anual, donde el punto más alto de ventas está a mediados de año, encontrandose al rededor de los meses de agosto y septiembre.
+
+## ii 
 Utilice una descomposición clásica multiplicativa para calcular el componente de tendencia y estacional.
 
 ```{r}
@@ -159,10 +163,13 @@ plastics_components |>
   autoplot()
 ```
 
-##iii 
+## iii 
 ¿Los resultados coinciden con su respuesta al inciso i)?
 
-##iv 
+- El componente de tendencia confirma la afirmación hecha sobre la linealidad y positividad de la misma.
+- El componente estacional verifica de igual manera la afirmación. Hay una estacionalidad anual, la cual se repite con un intervalo de 1 año, llegando a un punto máximo al rededor de agosto-septiembre de cada año.
+
+## iv 
 Calcule y grafique los datos desestacionalizados.
 
 ```{r}
@@ -174,7 +181,7 @@ plastics_seasonally_adjusted |>
   ggtitle("Ventas mensuales de producto A en miles desestacionalizados")
 ```
 
-##v 
+## v 
 Cambie, manualmente, una observación para que sea un outlier (p. ej., sume 500 a una observación). Vuelva a estimar los datos desestacionalizados. ¿Cuál fue el efecto de ese outlier?
 
 ```{r}
@@ -205,7 +212,10 @@ plastics_outlier_seasonally_adjusted |>
   ggtitle("Ventas mensuales de producto A en miles desestacionalizados con valor atipico")
 ```
 
-##vi 
+El haber agregado un valor atipico tuvo un efecto en la tendencia. Esta presento un pequeño incremento repentino en su linealidad, el cuál después decrementa, continuando con la tendencia normal. También se nota este cambio en la gráfica de los datos desestacionalizados, ya que claramente hay una inconsistencia en lugar donde se encuentra el valor atípico. Este llega casi hasta los valores máximos de la serie.
+
+
+## vi 
 ¿Hace alguna diferencia que el outlier se encuentre cerca del final de la serie o más alrededor del centro?
 
 ```{r}
@@ -235,3 +245,5 @@ plastics_outlier_seasonally_adjusted_2 |>
   autoplot()+
   ggtitle("Ventas mensuales de producto A en miles desestacionalizados con valor atipico")
 ```
+
+Si el dato atípico se encuentra al final de la serie en lugar de al principio, no hay un cambio considerable en la tendencia. Por la forma de calcular la tendencia si un dato atipico se encentra al final o principio de la serie, no tiene un efecto tan grande como si el dato estuvira por la mitad.
