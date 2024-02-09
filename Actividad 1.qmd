@@ -19,6 +19,8 @@ global_economy |>
   theme(legend.position = "none")
 ```
 
+Países con mayor PIB per cápita de 2010 a 2017:
+
 ```{r}
 global_economy |> 
   mutate(gdp_per_capita = GDP/Population) |> 
@@ -45,6 +47,8 @@ PIB_USA <- global_economy |>
 PIB_USA
 ```
 
+Transformación logaritmica:
+
 ```{r}
 log_PIB_USA <- global_economy |> 
   filter(Code == "USA") |> 
@@ -66,6 +70,8 @@ PIB_MEX <- global_economy |>
 PIB_MEX
 ```
 
+Transformación logaritmica:
+
 ```{r}
 log_PIB_MEX <- global_economy |> 
   filter(Code == "MEX") |> 
@@ -80,14 +86,146 @@ Demanda de electricidad en el estado de Victoria (Australia), de vic_elec.
 
 ```{r}
 vic_elec |>
-  autoplot(Demand)
+  autoplot(Demand)+
+  ggtitle("Demanda de electricidad en el estado de Victoria")
 ```
+
+Transformación logaritmica:
 
 ```{r}
 vic_elec |>
-  autoplot(log(Demand))
+  autoplot(log(Demand))+
+  ggtitle("Demanda de electricidad en el estado de Victoria transformados logaritmicamente")
 ```
+
+#3
+¿Es útil realizar una transformación de Box-Cox a los datos canadian_gas? ¿Por qué sí o por qué no?
+
 ```{r}
-vic_elec
+canadian_gas |> 
+  autoplot()+
+  ggtitle("Demanda de gas en Canada")
+```
+
+Transformación Box-Cox:
+
+```{r}
+(lambda <- canadian_gas |> 
+  features(Volume, features = guerrero) |> 
+  pull(lambda_guerrero))
+
+canadian_gas |> 
+  autoplot(box_cox(Volume, lambda))+
+  ggtitle("Demanda de gas en Canada transformados con Box-Cox")
+```
+
+#4
+El dataset fma::plastics tiene información de las ventas mensuales (medidas en miles) del producto A para un productor de plásticos, a lo largo de cinco años.
+
+##i
+Grafique la serie de tiempo para el producto A. ¿Identifica algún componente de tendencia-ciclo y/o estacional?
+
+```{r}
+fma::plastics |> 
+  autoplot()+
+  ggtitle("Ventas mensuales de producto A en miles")
+```
+
+##ii
+Utilice una descomposición clásica multiplicativa para calcular el componente de tendencia y estacional.
+
+```{r}
+plastics_tsbl <- as_tsibble(fma::plastics)
+
+plastics_decomp <- plastics_tsbl |> 
+  model(
+    clasica = classical_decomposition(value,
+                                      type = "multiplicative")
+  )
+
+plastics_components <- plastics_decomp |> 
+  components()
+
+plastics_components
+
+plastics_components |> 
+  autoplot()
+```
+
+##iii
+¿Los resultados coinciden con su respuesta al inciso i)?
+
+##iv
+Calcule y grafique los datos desestacionalizados.
+
+```{r}
+plastics_seasonally_adjusted <- plastics_components |>
+  select(index, season_adjust)
+
+plastics_seasonally_adjusted |> 
+  autoplot()+
+  ggtitle("Ventas mensuales de producto A en miles desestacionalizados")
+```
+
+##v
+Cambie, manualmente, una observación para que sea un outlier (p. ej., sume 500 a una observación). Vuelva a estimar los datos desestacionalizados. ¿Cuál fue el efecto de ese outlier?
+
+```{r}
+plastics_outlier_tsbl <- plastics_tsbl |> 
+  mutate(value = value + 500 * (value == 1349))
+
+plastics_outlier_decomp <- plastics_outlier_tsbl |> 
+  model(
+    clasica = classical_decomposition(value,
+                                      type = "multiplicative")
+  )
+
+plastics_outlier_components <- plastics_outlier_decomp |> 
+  components()
+
+plastics_outlier_components
+
+plastics_outlier_components |> 
+  autoplot()
+```
+
+```{r}
+plastics_outlier_seasonally_adjusted <- plastics_outlier_components |>
+  select(index, season_adjust)
+
+plastics_outlier_seasonally_adjusted |> 
+  autoplot()+
+  ggtitle("Ventas mensuales de producto A en miles desestacionalizados con valor atipico")
+```
+
+##vi
+¿Hace alguna diferencia que el outlier se encuentre cerca del final de la serie o más alrededor del centro?
+
+```{r}
+plastics_outlier_tsbl_2 <- plastics_tsbl |> 
+  mutate(value = value + 500 * (value == 1420))
+
+plastics_outlier_decomp_2 <- plastics_outlier_tsbl_2 |> 
+  model(
+    clasica = classical_decomposition(value,
+                                      type = "multiplicative")
+  )
+
+plastics_outlier_components_2 <- plastics_outlier_decomp_2 |> 
+  components()
+
+plastics_outlier_components_2
+
+plastics_outlier_components_2 |> 
+  autoplot()
+```
+
+```{r}
+plastics_outlier_seasonally_adjusted_2 <- plastics_outlier_components_2 |>
+  select(index, season_adjust)
+
+plastics_outlier_seasonally_adjusted_2 |> 
+  autoplot()+
+  ggtitle("Ventas mensuales de producto A en miles desestacionalizados con valor atipico")
 ```
 
