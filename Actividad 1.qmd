@@ -1,0 +1,93 @@
+---
+title: "Actividad 1"
+author: "Diego Lozoya y José Melchor"
+format: html
+editor: visual
+---
+
+```{r}
+library (tidyverse)
+library(fpp3)
+```
+
+#1
+Tomando el PIB de cada país, GDP, contenido en la tabla global_economy, grafique el PIB per cápita a lo largo del tiempo. ¿Cómo ha sido la evolución de la economía de los países en el tiempo? ¿Cuál país tiene el mayor PIB per cápita? (Les recomiendo quitar la leyenda del gráfico, incluyendo theme(legend.position = "none"))
+
+```{r}
+global_economy |> 
+  autoplot(GDP / Population)+
+  theme(legend.position = "none")
+```
+
+```{r}
+global_economy |> 
+  mutate(gdp_per_capita = GDP/Population) |> 
+  select(-c(Code, Growth:Exports)) |> 
+  filter(Year %in% 2010:2017) |>
+  as_tibble() |> 
+  group_by(Country) |> 
+  summarise(mean_gdppc = mean(gdp_per_capita, na.rm = TRUE)) |> 
+  arrange(desc(mean_gdppc))
+```
+
+#2
+Grafique las siguientes series de tiempo y transfórmelas y/o ajústelas si lo considera necesario. ¿Qué efecto tuvo la transformación?
+
+##i
+PIB de EEUU, de global_economy.
+
+```{r}
+PIB_USA <- global_economy |> 
+  filter(Code == "USA") |> 
+  autoplot(GDP)+
+  ggtitle("PIB Estados Unidos")
+
+PIB_USA
+```
+
+```{r}
+log_PIB_USA <- global_economy |> 
+  filter(Code == "USA") |> 
+  autoplot(log(GDP))+
+  ggtitle("PIB Estados Unidos transformado logaritmicamente")
+
+log_PIB_USA
+```
+
+##ii
+PIB de México, también de global_economy.
+
+```{r}
+PIB_MEX <- global_economy |> 
+  filter(Code == "MEX") |> 
+  autoplot(GDP)+
+  ggtitle("PIB México")
+
+PIB_MEX
+```
+
+```{r}
+log_PIB_MEX <- global_economy |> 
+  filter(Code == "MEX") |> 
+  autoplot(log(GDP))+
+  ggtitle("PIB México transformado logaritmicamente")
+
+log_PIB_MEX
+```
+
+##iii
+Demanda de electricidad en el estado de Victoria (Australia), de vic_elec.
+
+```{r}
+vic_elec |>
+  autoplot(Demand)
+```
+
+```{r}
+vic_elec |>
+  autoplot(log(Demand))
+```
+```{r}
+vic_elec
+```
+
