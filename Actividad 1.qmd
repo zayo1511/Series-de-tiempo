@@ -186,7 +186,7 @@ Cambie, manualmente, una observación para que sea un outlier (p. ej., sume 500 
 
 ```{r}
 plastics_outlier_tsbl <- plastics_tsbl |> 
-  mutate(value = value + 500 * (value == 1349))
+  mutate(value = value + 500 * (value == 1349)) #Uso de chat-GPT
 
 plastics_outlier_decomp <- plastics_outlier_tsbl |> 
   model(
@@ -212,7 +212,7 @@ plastics_outlier_seasonally_adjusted |>
   ggtitle("Ventas mensuales de producto A en miles desestacionalizados con valor atipico")
 ```
 
-El haber agregado un valor atipico tuvo un efecto en la tendencia. Esta presento un pequeño incremento repentino en su linealidad, el cuál después decrementa, continuando con la tendencia normal. También se nota este cambio en la gráfica de los datos desestacionalizados, ya que claramente hay una inconsistencia en lugar donde se encuentra el valor atípico. Este llega casi hasta los valores máximos de la serie.
+El haber agregado un valor atipico tuvo un efecto en la tendencia. Esta presento un pequeño incremento repentino en su linealidad, el cuál después decrementa, continuando con la tendencia normal. Tuvo un cambio en el patrón de estacionalidad de manera posterior, es decir, con un único dato fue suficiente para afectar al resto de patrones.También se nota este cambio en la gráfica de los datos desestacionalizados, ya que claramente hay una inconsistencia en lugar donde se encuentra el valor atípico. Este llega casi hasta los valores máximos de la serie.
 
 
 ## vi 
