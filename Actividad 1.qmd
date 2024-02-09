@@ -10,7 +10,7 @@ library (tidyverse)
 library(fpp3)
 ```
 
-#1
+#1 
 Tomando el PIB de cada país, GDP, contenido en la tabla global_economy, grafique el PIB per cápita a lo largo del tiempo. ¿Cómo ha sido la evolución de la economía de los países en el tiempo? ¿Cuál país tiene el mayor PIB per cápita? (Les recomiendo quitar la leyenda del gráfico, incluyendo theme(legend.position = "none"))
 
 ```{r}
@@ -32,10 +32,10 @@ global_economy |>
   arrange(desc(mean_gdppc))
 ```
 
-#2
+#2 
 Grafique las siguientes series de tiempo y transfórmelas y/o ajústelas si lo considera necesario. ¿Qué efecto tuvo la transformación?
 
-##i
+##i 
 PIB de EEUU, de global_economy.
 
 ```{r}
@@ -58,7 +58,9 @@ log_PIB_USA <- global_economy |>
 log_PIB_USA
 ```
 
-##ii
+Al aplicar una transformación logarítmica a los datos sobre el PIB de Estados Unidos, podemos ver un cambio en presentación de los datos. Sin la transformación los datos aparentan ser exponenciales, mientras que despues de aplicarles un logaritmo parece ser que los datos tienden a ser más lineales.
+
+##ii 
 PIB de México, también de global_economy.
 
 ```{r}
@@ -81,7 +83,10 @@ log_PIB_MEX <- global_economy |>
 log_PIB_MEX
 ```
 
-##iii
+Al igual que con la gráfica del PIB de Estados Unidos, al aplicar una transformación logarítmica a los datos sobre el PIB de México, podemos ver un cambio en presentación de los datos. Sin la transformación los datos aparentan ser exponenciales, mientras que despues de aplicarles un logaritmo parece ser que los datos tienden a ser más lineales.
+
+
+##iii 
 Demanda de electricidad en el estado de Victoria (Australia), de vic_elec.
 
 ```{r}
@@ -98,7 +103,9 @@ vic_elec |>
   ggtitle("Demanda de electricidad en el estado de Victoria transformados logaritmicamente")
 ```
 
-#3
+Tras aplicar una transformación logaritmica a los datos de la demanda de electricidad en el estado de Victoria no se puede ver ningún cambio aparente en los datos. Lo único que sucede es un cambio de magnitud en el eje y, presentando una proporcion en varianza menor a la que mostraba en los datos originales.
+
+#3 
 ¿Es útil realizar una transformación de Box-Cox a los datos canadian_gas? ¿Por qué sí o por qué no?
 
 ```{r}
@@ -119,10 +126,10 @@ canadian_gas |>
   ggtitle("Demanda de gas en Canada transformados con Box-Cox")
 ```
 
-#4
+#4 
 El dataset fma::plastics tiene información de las ventas mensuales (medidas en miles) del producto A para un productor de plásticos, a lo largo de cinco años.
 
-##i
+##i 
 Grafique la serie de tiempo para el producto A. ¿Identifica algún componente de tendencia-ciclo y/o estacional?
 
 ```{r}
@@ -131,7 +138,7 @@ fma::plastics |>
   ggtitle("Ventas mensuales de producto A en miles")
 ```
 
-##ii
+##ii 
 Utilice una descomposición clásica multiplicativa para calcular el componente de tendencia y estacional.
 
 ```{r}
@@ -152,10 +159,10 @@ plastics_components |>
   autoplot()
 ```
 
-##iii
+##iii 
 ¿Los resultados coinciden con su respuesta al inciso i)?
 
-##iv
+##iv 
 Calcule y grafique los datos desestacionalizados.
 
 ```{r}
@@ -167,7 +174,7 @@ plastics_seasonally_adjusted |>
   ggtitle("Ventas mensuales de producto A en miles desestacionalizados")
 ```
 
-##v
+##v 
 Cambie, manualmente, una observación para que sea un outlier (p. ej., sume 500 a una observación). Vuelva a estimar los datos desestacionalizados. ¿Cuál fue el efecto de ese outlier?
 
 ```{r}
@@ -198,7 +205,7 @@ plastics_outlier_seasonally_adjusted |>
   ggtitle("Ventas mensuales de producto A en miles desestacionalizados con valor atipico")
 ```
 
-##vi
+##vi 
 ¿Hace alguna diferencia que el outlier se encuentre cerca del final de la serie o más alrededor del centro?
 
 ```{r}
@@ -228,4 +235,3 @@ plastics_outlier_seasonally_adjusted_2 |>
   autoplot()+
   ggtitle("Ventas mensuales de producto A en miles desestacionalizados con valor atipico")
 ```
-
