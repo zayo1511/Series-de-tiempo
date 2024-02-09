@@ -1,7 +1,11 @@
 ---
 title: "Actividad 1"
 author: "Diego Lozoya y José Melchor"
-format: html
+format: 
+  html:
+    embed-recources: true
+    toc: true
+
 editor: visual
 ---
 
