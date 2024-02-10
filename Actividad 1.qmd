@@ -8,6 +8,7 @@ format:
 ---
 
 ```{r}
+#| message: FALSE
 library (tidyverse)
 library(fpp3)
 ```
@@ -248,4 +249,4 @@ plastics_outlier_seasonally_adjusted_2 |>
   ggtitle("Ventas mensuales de producto A en miles desestacionalizados con valor atipico")
 ```
 
-Si el dato atípico se encuentra al final de la serie en lugar de al principio, no hay un cambio considerable en la tendencia. Por la forma de calcular la tendencia si un dato atipico se encentra al final o principio de la serie, no tiene un efecto tan grande como si el dato estuvira por la mitad.
+Si el dato atípico se encuentra al final de la serie en lugar de al principio, no hay un cambio considerable en la tendencia. Por la forma de calcular la tendencia si un dato atipico se encentra al final o principio de la serie, no tiene un efecto tan grande como si el dato estuviera por la mitad.
