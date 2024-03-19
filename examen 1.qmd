@@ -1,0 +1,81 @@
+---
+title: "Examen 1"
+author: "DLM"
+format: html
+editor: source
+---
+
+```{r}
+#| message: false
+library(tidyverse)
+library(fpp3)
+library(plotly)
+library(patchwork)
+library(tidyquant)
+library(shiny)
+library(patchwork)
+library(tidyquant)
+library(ggplot2)
+library(dplyr)
+library(fma)
+library(tsibble)
+library(tsibbledata)
+library(dplyr)
+library(fable)
+```
+
+```{r}
+datos <- tidyquant::tq_get(
+      x = "DOGE-USD",
+      from = today() - 365,
+      to = today() - 1
+    ) |>
+      select(symbol, adjusted) |>
+      mutate(
+        t = seq_len(n())
+      ) |>
+      as_tsibble(index = t, key = symbol) |>
+      relocate(symbol, t)
+
+datos |> 
+  autoplot(adjusted)
+```
+
+```{r}
+lambda <- datos |> 
+  features(adjusted, features = guerrero) |> 
+  pull(lambda_guerrero)
+lambda
+
+datos |> 
+  autoplot(box_cox(adjusted, lambda))
+
+datos |> 
+  autoplot(log(adjusted))
+```
+
+```{r}
+#STL decomposition
+datos |> 
+  model(
+    stl = STL(adjusted, robust = TRUE)
+  ) |> 
+  components() |> 
+  autoplot()
+```
+
+```{r}
+datos_fit <- datos |> 
+  model(naive = NAIVE(adjusted))
+
+datos_fit
+
+datos_fit |> 
+  select(naive) |> 
+  gg_tsresiduals()
+
+```
+
+
+
+
