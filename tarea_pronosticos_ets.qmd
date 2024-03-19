@@ -194,7 +194,7 @@ gdp_fc_fut <- gdp_fit_fut |>
 gdp_fc_fut |> 
   autoplot(gdp_train)
 ```
-El modelo que más de ajusta a los datos, y por ende se toma como pronóstico es el modelo stlf, el cuál combina una descomposición de tipo STL, con un modelo drift estacional. Aunque la serie de tiempo no muestra estacionalidad, el hecho de que modelo la incluya, ayuda a su ajuste, ya que la ondulación del pronósticp se asemeja más a el crecimeinto del PIB de cualquier país. Por otro lado el segundo modelo que mejor se ajusta, sorprendentemente, es el modelo drift. No fuimos capaces de encontrar un modelo de suavización exponencial que se ajustara mejor a los datos. 
+El modelo que más de ajusta a los datos, y por ende se toma como pronóstico es el modelo stlf, el cuál combina una descomposición de tipo STL, con un modelo drift estacional. Aunque la serie de tiempo no muestra estacionalidad, el hecho de que modelo la incluya, ayuda a su ajuste, ya que la ondulación del pronóstico se asemeja más a el crecimeinto del PIB de cualquier país. Por otro lado el segundo modelo que mejor se ajusta, sorprendentemente, es el modelo drift. No fuimos capaces de encontrar un modelo de suavización exponencial que se ajustara mejor a los datos. 
 
 
 # Produccion de ladrillos en Australia
