@@ -1,0 +1,492 @@
+---
+title: "Tarea pronósticos"
+author: "Diego Lozoya y José Melchor"
+date: today
+format: 
+  html:
+    embed-resources: true
+    toc: true
+    code-link: true
+    theme: 
+      light: minty
+      dark: darkly
+---
+
+# pkgs
+
+```{r}
+#| message: false
+library(tidyverse)
+library(tsibble)
+library(feasts)
+library(fable)
+library(tsibbledata)
+library(fpp3)
+library(plotly)
+```
+
+# PIB Alemania
+
+## Importar datos
+
+```{r}
+gdp <- tidyquant::tq_get(
+  x    = "CLVMNACSCAB1GQDE",
+  get  = "economic.data",
+  from = "1997-01-01"
+)
+
+gdp <- gdp |> 
+  mutate(date = yearquarter(date)) |> 
+  as_tsibble(
+    index = date,
+    key   = symbol
+  )
+
+gdp
+
+gdp_train <- gdp |> 
+  filter_index(. ~ "2020 Q4")
+
+gdp_train
+```
+## Gráfica
+
+```{r}
+p <- gdp_train |> 
+  autoplot(price) +
+  labs(
+    title = "Time series plot of the Real GDP for Germany",
+    y = "GDP"
+  )
+ 
+ggplotly(p, dynamicTicks = TRUE) |> 
+  rangeslider()
+```
+## Estacionalidad
+
+```{r}
+gdp_train |> 
+  gg_season(price) |> 
+  ggplotly()
+```
+## Descomposición
+
+```{r}
+gdp_train |> 
+  model(stl = STL(price, robust = TRUE)) |> 
+  components() |> 
+  autoplot() |> 
+  ggplotly()
+```
+## Transformación
+
+```{r}
+gdp_train |> 
+  autoplot(log(price)) +
+  ggtitle("Log of the Real GDP of Germany")
+
+gdp_train |> 
+  model(stl = STL(log(price) ~ season(window = "periodic"), robust = TRUE)) |> 
+  components() |> 
+  autoplot() 
+```
+## Suavización exponencial
+
+### Modelo
+
+```{r}
+gdp_fit <- gdp_train |> 
+  model(
+    snaive = SNAIVE(log(price)),
+    naive = NAIVE(log(price)),
+    drift = RW(log(price) ~ drift()),
+    stlf = decomposition_model(
+          STL(log(price) ~ season(window = "periodic"), robust = TRUE),
+          RW(season_adjust ~ drift())
+        ),
+    ets_ANA = ETS(log(price) ~ error("A") + trend("N") + season("A")),
+    ets_AAdA = ETS(log(price) ~ error("A") + trend("Ad") + season("A")),
+    ets_MAdM = ETS(log(price) ~ error("M") + trend("Ad") + season("M")),
+  )
+
+gdp_fit |> 
+  select(snaive) |> 
+  gg_tsresiduals() +
+  ggtitle("Residuals Diagnostics for the Seasonal Naïve Model")
+
+gdp_fit |> 
+  select(naive) |> 
+  gg_tsresiduals() +
+  ggtitle("Residuals Diagnostics for the Naïve Model")
+
+gdp_fit |> 
+  select(drift) |> 
+  gg_tsresiduals() +
+  ggtitle("Residuals Diagnostics for the Drift Model")
+
+gdp_fit |> 
+  select(stlf) |> 
+  gg_tsresiduals() +
+  ggtitle("Residuals Diagnostics for the stlf Model")
+
+gdp_fit |> 
+  select(ets_ANA) |> 
+  gg_tsresiduals() +
+  ggtitle("Residuals Diagnostics for the ets_ANA Model")
+
+gdp_fit |> 
+  select(ets_AAdA) |> 
+  gg_tsresiduals() +
+  ggtitle("Residuals Diagnostics for the ets_AAdA Model")
+
+gdp_fit |> 
+  select(ets_MAdM) |> 
+  gg_tsresiduals() +
+  ggtitle("Residuals Diagnostics for the ets_MAdM Model")
+```
+### P-value
+
+```{r}
+gdp_fit |> 
+  augment() |> 
+  features(.innov, ljung_box, lag = 24, dof = 0)
+```
+```{r}
+gdp_train_accu <- accuracy(gdp_fit) |> 
+  arrange(MAPE)
+gdp_train_accu |> 
+  select(symbol:.type, MAPE, RMSE, MAE, MASE)
+```
+### Entrenamiento de pronóstico
+
+```{r}
+gdp_fc <- gdp_fit |> 
+  forecast(h = 12) 
+
+gdp_fc
+
+gdp_fc |> 
+  autoplot(gdp |> filter_index("2005 Q1" ~ .), size = 1) +
+  facet_wrap(~ .model, ncol = 3) +
+  theme(legend.position = "none")
+```
+#### Error del pronóstico
+
+```{r}
+gdp_fc |> 
+  accuracy(gdp) |> 
+  select(.model, .type, MAPE, RMSE, MAE, MASE) |> 
+  arrange(MAPE)
+```
+### Pronóstico a futuro
+
+```{r}
+gdp_fit_fut <- gdp_train |> 
+  model(
+    stlf = decomposition_model(
+          STL(log(price) ~ season(window = "periodic"), robust = TRUE),
+          RW(season_adjust ~ drift())
+        )
+  )
+
+gdp_fc_fut <- gdp_fit_fut |> 
+  forecast(h = "3 years")
+
+gdp_fc_fut |> 
+  autoplot(gdp_train)
+```
+El modelo que más de ajusta a los datos, y por ende se toma como pronóstico es el modelo stlf, el cuál combina una descomposición de tipo STL, con un modelo drift estacional. Aunque la serie de tiempo no muestra estacionalidad, el hecho de que modelo la incluya, ayuda a su ajuste, ya que la ondulación del pronóstico se asemeja más a el crecimeinto del PIB de cualquier país. Por otro lado el segundo modelo que mejor se ajusta, sorprendentemente, es el modelo drift. No fuimos capaces de encontrar un modelo de suavización exponencial que se ajustara mejor a los datos. 
+
+## ARIMA
+
+```{r}
+gdp |> 
+  features(log(price), unitroot_ndiffs) 
+```
+
+```{r}
+gdp_diff <- diff(gdp$price)
+
+gdp_diff
+```
+
+```{r}
+gdp |> 
+  gg_tsdisplay(log(price), plot_type = "partial")
+```
+### Modelo
+```{r}
+gdp_fit <- gdp_train |> 
+  model(
+    arima_010 = ARIMA(log(price) ~ pdq(1, 1, 0) + PDQ(0, 0, 0)),
+    arima_011 = ARIMA(log(price) ~ pdq(1, 1, 0) + PDQ(0, 0, 0)),
+    arima_012 = ARIMA(log(price) ~ pdq(1, 1, 0) + PDQ(0, 0, 0)),
+    arima_110 = ARIMA(log(price) ~ pdq(1, 1, 0) + PDQ(0, 0, 0)),
+    arima_111 = ARIMA(log(price) ~ pdq(1, 1, 1) + PDQ(0, 0, 0)),
+    arima_210 = ARIMA(log(price) ~ pdq(2, 1, 0) + PDQ(0, 0, 0)),
+    arima_212 = ARIMA(log(price) ~ pdq(2, 1, 2) + PDQ(0, 0, 0)),
+    arima_auto = ARIMA(log(price) ~ PDQ(0, 0, 0),
+                       stepwise = FALSE, approximation = FALSE),
+  )
+
+gdp_fit
+
+gdp_fit |> 
+  select(arima_010) |> 
+  report()
+
+gdp_fit |> 
+  select(arima_011) |> 
+  report()
+
+gdp_fit |> 
+  select(arima_012) |> 
+  report()
+
+gdp_fit |> 
+  select(arima_110) |> 
+  report()
+
+gdp_fit |> 
+  select(arima_111) |> 
+  report()
+
+gdp_fit |> 
+  select(arima_210) |> 
+  report()
+
+gdp_fit |> 
+  select(arima_212) |> 
+  report()
+
+gdp_fit |> 
+  select(arima_auto) |> 
+  report()
+```
+El modelo determinado automáticamente es un modelo ARIMA(0,1,1)
+
+```{r}
+gdp_fit |> 
+  glance() |> 
+  arrange(AICc)
+```
+```{r}
+accuracy(gdp_fit) |> 
+  arrange(MAE)
+```
+```{r}
+gdp_fit |> 
+  select(arima_010) |> 
+  gg_tsresiduals()
+
+gdp_fit |> 
+  select(arima_011) |> 
+  gg_tsresiduals()
+
+gdp_fit |> 
+  select(arima_012) |> 
+  gg_tsresiduals()
+
+gdp_fit |> 
+  select(arima_110) |> 
+  gg_tsresiduals()
+
+gdp_fit |> 
+  select(arima_111) |> 
+  gg_tsresiduals()
+
+gdp_fit |> 
+  select(arima_210) |> 
+  gg_tsresiduals()
+
+gdp_fit |> 
+  select(arima_212) |> 
+  gg_tsresiduals()
+
+gdp_fit |> 
+  select(arima_auto) |> 
+  gg_tsresiduals()
+```
+### P-value
+
+```{r}
+gdp_fit |> 
+  augment() |> 
+  features(.innov, ljung_box, lag = 10) |> 
+  mutate(residuos_autocorrelacionados = if_else(lb_pvalue >=0.05, "No autocorrelación", "Autocorrelacionados"))
+```
+### Pronóstico a futuro
+
+```{r}
+gdp_fit_fut <- gdp_train |> 
+  model(
+    arima_auto = ARIMA(log(price) ~ PDQ(0, 0, 0),
+                       stepwise = FALSE, approximation = FALSE),
+  )
+
+gdp_fc_fut <- gdp_fit_fut |> 
+  forecast(h = "3 years")
+
+gdp_fc_fut |> 
+  autoplot(gdp_train)
+```
+
+# Produccion de ladrillos en Australia
+
+## Importar datos
+```{r}
+bricks_production <- aus_production |> 
+  select(Bricks)
+
+bricks_production
+
+recent_production <- bricks_production %>% filter(year(Quarter) >= 1981)
+bricks_train <- recent_production %>% filter(year(Quarter) <= 2003)
+
+bricks_train
+```
+## Gráfica
+
+```{r}
+p <- bricks_train |> 
+  autoplot(Bricks)
+
+ggplotly(p, dynamicTicks = TRUE) |> 
+  rangeslider()
+```
+## Estacionalidad
+
+```{r}
+bricks_train |> 
+  gg_season(Bricks) |> 
+  ggplotly()
+```
+##Descomposición
+
+```{r}
+bricks_train |> 
+  model(stl = STL(Bricks, robust = TRUE)) |> 
+  components() |> 
+  autoplot() |> 
+  ggplotly()
+```
+## Modelo
+
+```{r}
+bricks_fit <- bricks_train |> 
+  model(
+    snaive = SNAIVE(Bricks),
+    naive = NAIVE(Bricks),
+    drift  = RW(Bricks ~ drift()),
+    stlf = decomposition_model(
+          STL(Bricks ~ season(window = "periodic"), robust = TRUE),
+          RW(season_adjust ~ drift())
+        ),
+    ets_ANA = ETS(Bricks ~ error("A") + trend("N") + season("A")),
+    ets_AAdA = ETS(Bricks ~ error("A") + trend("Ad") + season("A")),
+    ets_MAdM = ETS(Bricks ~ error("M") + trend("Ad") + season("M")),
+    stl_ets_A = decomposition_model(
+      STL(Bricks, robust=TRUE),
+      ETS(season_year ~ error("A") + trend("N") + season("A")),
+      ETS(season_adjust ~ error("A") + trend("Ad") + season("N"))
+    ),
+    stl_ets_M = decomposition_model(
+      STL(Bricks, robust=TRUE),
+      ETS(season_year ~ error("M") + trend("N") + season("M")),
+      ETS(season_adjust ~ error("A") + trend("Ad") + season("N"))
+    )
+  )
+
+bricks_fit |> 
+  select(snaive) |> 
+  gg_tsresiduals() +
+  ggtitle("Residuals Diagnostics for the Seasonal Naïve Model")
+
+bricks_fit |> 
+  select(drift) |> 
+  gg_tsresiduals() +
+  ggtitle("Residuals Diagnostics for the Drift Model")
+
+bricks_fit |> 
+  select(stlf) |> 
+  gg_tsresiduals() +
+  ggtitle("Residuals Diagnostics for the stlf Model")
+
+bricks_fit |> 
+  select(ets_ANA) |> 
+  gg_tsresiduals() +
+  ggtitle("Residuals Diagnostics for the ets_ANA Model")
+
+bricks_fit |> 
+  select(ets_AAdA) |> 
+  gg_tsresiduals() +
+  ggtitle("Residuals Diagnostics for the ets_AAdA Model")
+
+bricks_fit |> 
+  select(ets_MAdM) |> 
+  gg_tsresiduals() +
+  ggtitle("Residuals Diagnostics for the ets_MAdM Model")
+
+bricks_fit |> 
+  select(stl_ets_A) |> 
+  gg_tsresiduals() +
+  ggtitle("Residuals Diagnostics for the stl_ets_A Model")
+
+bricks_fit |> 
+  select(stl_ets_M) |> 
+  gg_tsresiduals() +
+  ggtitle("Residuals Diagnostics for the stl_ets_M Model")
+```
+## P-value
+```{r}
+bricks_fit |> 
+  augment() |> 
+  features(.innov, ljung_box, lag = 24, dof = 0)
+```
+```{r}
+bricks_train_accu <- accuracy(bricks_fit) |> 
+  arrange(MAPE)
+bricks_train_accu |> 
+  select(.model, .type, MAPE, RMSE, MAE, MASE)
+```
+## Entrenamiento de pronóstico
+
+```{r}
+bricks_fc <- bricks_fit |> 
+  forecast(h = 6) 
+
+bricks_fc
+
+bricks_fc |> 
+  autoplot(bricks_production |> filter_index("1990 Q1" ~ .), size = 1) +
+  facet_wrap(~ .model, ncol = 3) +
+  theme(legend.position = "none")
+```
+### Error del pronóstico
+
+```{r}
+bricks_fc |> 
+  accuracy(bricks_production) |> 
+  select(.model:.type, MAPE, RMSE, MAE, MASE) |> 
+  arrange(MAPE)
+```
+## Pronóstico a futuro
+
+```{r}
+bricks_fit_fut <- bricks_train |> 
+  model(
+    stlf = decomposition_model(
+          STL(Bricks ~ season(window = "periodic"), robust = TRUE),
+          RW(season_adjust ~ drift())
+    )
+  )
+
+bricks_fc_fut <- bricks_fit_fut |> 
+  forecast(h = "5 years")
+
+bricks_fc_fut |> 
+  autoplot(bricks_train)
+```
+El modelo que presentó un menor error en el ajuste del pronóstico es el stlf, el cual mezcal una descomposición tipo STL con un modelo drift estacional. Caso contrario con la serie de tiempo pasada, esta si muestra estacionalidad de manera anual, por lo que hace sentido que el modelo se ajuste de mejor manera, ya que respeta la estacionalidad que se presenta en los datos de entramiento, y muestra la tendencia bajista, presentada en los últimos 20 años. El segundo modelo que mejor se ajusta es uno de suavización exponencial con error aditivo, sin tendencia y con una estacionalidad aditiva.  
+
