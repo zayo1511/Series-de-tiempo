@@ -7,6 +7,7 @@ server: shiny
 
 ```{r}
 #| context: setup
+#| message: false
 
 library(tidyverse)
 library(fpp3)
