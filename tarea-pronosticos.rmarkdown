@@ -1,0 +1,340 @@
+---
+title: "Tarea pronósticos"
+author: "Diego Lozoya y José Melchor"
+date: today
+format: 
+  html:
+    embed-resources: true
+    toc: true
+    code-link: true
+    theme: 
+      light: minty
+      dark: darkly
+---
+
+
+#pkgs
+
+
+```{r}
+#| message: false
+library(tidyverse)
+library(tsibble)
+library(feasts)
+library(fable)
+library(tsibbledata)
+library(fpp3)
+library(plotly)
+```
+
+
+#PIB Alemania
+
+##Importar datos
+
+
+```{r}
+gdp <- tidyquant::tq_get(
+  x    = "CLVMNACSCAB1GQDE",
+  get  = "economic.data",
+  from = "1997-01-01"
+)
+
+gdp <- gdp |> 
+  mutate(date = yearquarter(date)) |> 
+  as_tsibble(
+    index = date,
+    key   = symbol
+  )
+
+gdp
+
+gdp_train <- gdp |> 
+  filter_index(. ~ "2020 Q4")
+
+gdp_train
+```
+
+##Gráfica
+
+
+```{r}
+p <- gdp_train |> 
+  autoplot(price) +
+  labs(
+    title = "Time series plot of the Real GDP for Germany",
+    y = "GDP"
+  )
+ 
+ggplotly(p, dynamicTicks = TRUE) |> 
+  rangeslider()
+```
+
+##Estacionalidad
+
+
+```{r}
+gdp_train |> 
+  gg_season(price) |> 
+  ggplotly()
+```
+
+##Descomposición
+
+
+```{r}
+gdp_train |> 
+  model(stl = STL(price, robust = TRUE)) |> 
+  components() |> 
+  autoplot() |> 
+  ggplotly()
+```
+
+##Transformación
+
+
+```{r}
+gdp_train |> 
+  autoplot(log(price)) +
+  ggtitle("Log of the Real GDP of Germany")
+
+gdp_train |> 
+  model(stl = STL(log(price) ~ season(window = "periodic"), robust = TRUE)) |> 
+  components() |> 
+  autoplot() 
+```
+
+##Modelo
+
+
+```{r}
+gdp_fit <- gdp_train |> 
+  model(
+    snaive = SNAIVE(log(price)),
+    drift  = RW(log(price) ~ drift()),
+    stlf = decomposition_model(
+          STL(log(price) ~ season(window = "periodic"), robust = TRUE),
+          RW(season_adjust ~ drift())
+        ),
+    ets_ANA = ETS(price ~ error("A") + trend("N") + season("A")),
+    ets_AAdA = ETS(price ~ error("A") + trend("Ad") + season("A")),
+    ets_MAdM = ETS(price ~ error("M") + trend("Ad") + season("M")),
+    ets_ANA_l = ETS(log(price) ~ error("A") + trend("N") + season("A")),
+    ets_AAdA_l = ETS(log(price) ~ error("A") + trend("Ad") + season("A")),
+    ets_MAdM_l = ETS(log(price) ~ error("M") + trend("Ad") + season("M")),
+    stl_ets_A = decomposition_model(
+      STL(log(price), robust=TRUE),
+      ETS(season_year ~ error("A") + trend("N") + season("A")),
+      ETS(season_adjust ~ error("A") + trend("Ad") + season("N"))
+    ),
+    stl_ets_M = decomposition_model(
+      STL(log(price), robust=TRUE),
+      ETS(season_year ~ error("M") + trend("N") + season("M")),
+      ETS(season_adjust ~ error("A") + trend("Ad") + season("N"))
+    )
+  )
+
+gdp_fit |> 
+  select(snaive) |> 
+  gg_tsresiduals() +
+  ggtitle("Residuals Diagnostics for the Seasonal Naïve Model")
+
+gdp_fit |> 
+  select(drift) |> 
+  gg_tsresiduals() +
+  ggtitle("Residuals Diagnostics for the Drift Model")
+
+gdp_fit |> 
+  select(stlf) |> 
+  gg_tsresiduals() +
+  ggtitle("Residuals Diagnostics for the Drift Model")
+
+gdp_fit |> 
+  select(ets_ANA) |> 
+  gg_tsresiduals() +
+  ggtitle("Residuals Diagnostics for the Seasonal Naïve Model")
+
+gdp_fit |> 
+  select(ets_AAdA) |> 
+  gg_tsresiduals() +
+  ggtitle("Residuals Diagnostics for the Drift Model")
+
+gdp_fit |> 
+  select(ets_MAdM) |> 
+  gg_tsresiduals() +
+  ggtitle("Residuals Diagnostics for the Drift Model")
+
+gdp_fit |> 
+  select(ets_ANA_l) |> 
+  gg_tsresiduals() +
+  ggtitle("Residuals Diagnostics for the Seasonal Naïve Model")
+
+gdp_fit |> 
+  select(ets_AAdA_l) |> 
+  gg_tsresiduals() +
+  ggtitle("Residuals Diagnostics for the Drift Model")
+
+gdp_fit |> 
+  select(ets_MAdM_l) |> 
+  gg_tsresiduals() +
+  ggtitle("Residuals Diagnostics for the Drift Model")
+
+gdp_fit |> 
+  select(stl_ets_A) |> 
+  gg_tsresiduals() +
+  ggtitle("Residuals Diagnostics for the Seasonal Naïve Model")
+
+gdp_fit |> 
+  select(stl_ets_M) |> 
+  gg_tsresiduals() +
+  ggtitle("Residuals Diagnostics for the Drift Model")
+```
+
+##P-value
+
+```{r}
+gdp_fit |> 
+  augment() |> 
+  features(.innov, ljung_box, lag = 24, dof = 0)
+```
+
+```{r}
+gdp_train_accu <- accuracy(gdp_fit) |> 
+  arrange(MAPE)
+gdp_train_accu |> 
+  select(symbol:.type, MAPE, RMSE, MAE, MASE)
+```
+
+##Pronóstico
+
+
+```{r}
+gdp_fc <- gdp_fit |> 
+  forecast(h = 6) 
+
+gdp_fc
+
+gdp_fc |> 
+  autoplot(gdp |> filter_index("2005 Q1" ~ .), size = 1) +
+  facet_wrap(~ .model, ncol = 3) +
+  theme(legend.position = "none")
+```
+
+###Error de pronóstico
+
+
+```{r}
+gdp_fc |> 
+  accuracy(gdp) |> 
+  select(.model:.type, MAPE, RMSE, MAE, MASE) |> 
+  arrange(MAPE)
+```
+
+##Pronóstico del futuro
+
+
+```{r}
+gdp_fit2 <- gdp |> 
+  model(
+    stlf = decomposition_model(
+          STL(log(price) ~ season(window = "periodic"), robust = TRUE),
+          RW(season_adjust ~ drift())
+        )
+  )
+
+gdp_fit3 <- gdp |> 
+  model(
+    drift  = RW(log(price) ~ drift())
+  )
+
+gdp_fc_fut <- gdp_fit2 |> 
+  forecast(h = "3 years")
+
+gdp_fc_fut |> 
+  autoplot(gdp)
+
+gdp_fc_fut2 <- gdp_fit3 |> 
+  forecast(h = "3 years")
+
+gdp_fc_fut2 |> 
+  autoplot(gdp)
+```
+
+
+#Produccion de ladrillos en Australia
+
+##Importar datos
+
+```{r}
+bricks_production <- aus_production |> 
+  select(Bricks)
+
+bricks_production
+
+recent_production <- bricks_production %>% filter(year(Quarter) >= 1982)
+bricks_train <- recent_production %>% filter(year(Quarter) <= 2004)
+
+bricks_train
+```
+
+##Gráfica
+
+
+```{r}
+p <- bricks_train |> 
+  autoplot(Bricks)
+
+ggplotly(p, dynamicTicks = TRUE) |> 
+  rangeslider()
+```
+
+##Estacionalidad
+
+
+```{r}
+bricks_train |> 
+  gg_season(Bricks) |> 
+  ggplotly()
+```
+
+```{r}
+bricks_train |> 
+  model(stl = STL(Bricks, robust = TRUE)) |> 
+  components() |> 
+  autoplot() |> 
+  ggplotly()
+```
+
+##Modelo
+
+
+```{r}
+bricks_fit <- bricks_train |> 
+  model(
+    Mean = MEAN(Bricks),
+    `Naïve` = NAIVE(Bricks),
+    `Seasonal naïve` = SNAIVE(Bricks),
+    Drift = RW(Bricks ~ drift())
+  )
+
+bricks_fit |> 
+  select(Mean) |> 
+  gg_tsresiduals() +
+  ggtitle("Residuals Diagnostics for the Mean Model")
+
+bricks_fit |> 
+  select(`Naïve`) |> 
+  gg_tsresiduals() +
+  ggtitle("Residuals Diagnostics for the Naïve Model")
+
+bricks_fit |> 
+  select(`Seasonal naïve`) |> 
+  gg_tsresiduals() +
+  ggtitle("Residuals Diagnostics for the Seasonal naïve Model")
+
+bricks_fit |> 
+  select(Drift) |> 
+  gg_tsresiduals() +
+  ggtitle("Residuals Diagnostics for the Naïve Model")
+```
+
