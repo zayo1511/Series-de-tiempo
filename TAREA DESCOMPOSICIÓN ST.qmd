@@ -1,0 +1,166 @@
+---
+title: "Descomposición de ST  TAREA/Trabajo en clase"
+author: "José Armando Melchor Soto"
+format: html
+editor: visual
+---
+
+```{r}
+#| message: false
+library(tidyverse)
+library(fpp3)
+library(plotly)
+library(patchwork)
+library(tidyquant)
+library(ggplot2)
+library(dplyr)
+library(fma)
+
+```
+
+```{r}
+global_economy |> 
+  autoplot(GDP / Population)+
+  theme(legend.position="none")
+  
+```
+
+```{r}
+global_economy |> 
+  mutate(gdp_per_capita = GDP/Population) |> 
+  select(-c(Code, Growth:Exports)) |> 
+  filter(Year %in% 2010:2017) |>
+  as_tibble() |> 
+  group_by(Country) |> 
+  summarise(mean_gdppc = mean(gdp_per_capita, na.rm = TRUE)) |> 
+  arrange(desc(mean_gdppc))
+```
+
+```{r}
+global_economy |> 
+  arrange(desc(GDP/Population))
+  
+
+```
+
+1.  El país con más PIB per capita, es Monaco
+
+```{r}
+eua <- global_economy |> 
+  filter(Code == "USA")
+eua
+```
+
+```{r}
+eua <- global_economy |> 
+  filter(Code == "USA")
+eua |> 
+  autoplot(GDP / Population)
+
+```
+
+```{r}
+MEX <- global_economy |> 
+  filter(Code == "MEX")
+MEX |> 
+  autoplot(GDP / Population)
+```
+
+```{r}
+MEX <- global_economy |> 
+  filter(Code == "MEX")
+MEX
+```
+
+```{r}
+global_economy |> 
+  filter(Code == c("USA","MEX")) |> 
+  autoplot(.vars=GDP)
+
+```
+
+2.  
+
+    iii. 
+
+```{r}
+data("vic_elec")
+head(vic_elec)
+vic_elec %>%
+  autoplot(log(Demand))
+
+```
+
+```{r}
+
+data("vic_elec")
+filtered_data <- filter(vic_elec, year(Date) == 2014)
+head(filtered_data)
+filtered_data %>%
+  autoplot(log(Demand))
+
+```
+
+2.  
+
+    iii. La demanda de electricidad en el estado de Victoria (Australia), la más alta fue en los primeros meses de 2014, entre Enero y Febrero.
+
+3.  
+
+```{r}
+canadian_gas |> 
+  autoplot()
+
+```
+
+3.  Yo creo que no , porque veo que la serie tiene una tendencia con el tiempo, casi siempre va en aumento. Podriamos considerar otras transformaciones.
+
+4.  
+
+```{r}
+data("plastics")
+head(plastics)
+autoplot(plastics)
+```
+
+i.  Yo veo que hay una tendencia en el tiempo, pero siempre de crecimiento , aunque no es tan brusco el cambio, cambia.
+
+ii. 
+
+```{r}
+data("plastics")
+head(plastics)
+
+plastics_decomp <- decompose(plastics)
+autoplot(plastics_decomp)
+
+```
+
+iii. Los datos sí coiciden, nomas que veo que cambia tantito la grafica, más en lo ancho, en los datos no veo que cambie en nada.
+
+iv. 
+
+```{r}
+data("plastics")
+head(plastics)
+destacionarios<-plastics - trend - seasonal
+autoplot(destacionarios)
+```
+
+V.  
+
+```{r}
+data("plastics")
+head(plastics)
+plastics_outlier <- plastics
+plastics_outlier[10] <- plastics_outlier[10] + 500 
+plastics_decomp_outlier <- decompose(plastics_outlier)
+autoplot(plastics_decomp_outlier)
+```
+
+v.  siento que si cambia, porque se ve que al principio como que tiene un pico muy grande, pero despues recae rapidamente.Ese es el efecto que le veo.
+
+```{=html}
+<!-- -->
+```
+vi. Opino, que si cambiaria ,ya que siento que tendría mayor repercución si estuviera en el final de la serie.
