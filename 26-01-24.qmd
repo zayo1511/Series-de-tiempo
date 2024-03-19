@@ -1,0 +1,93 @@
+---
+title: "Untitled"
+format: html
+editor: visual
+---
+
+## pkgs
+
+```{r}
+#| message: false
+library(tidyverse)
+library(fpp3)
+library(plotly)
+library(patchwork)
+library(tidyquant)
+```
+
+```{r}
+?aus_accommodation
+aus_accommodation
+```
+
+```{r}
+tasmania <- aus_accommodation |> 
+  filter(State == "Tasmania") |> 
+  #select(Date, Takings, Occupancy) opción 1
+  #select(Date, Takings:Occupancy) opción 2
+  select(-c(State, CPI)) |>  #opción 3
+  mutate(
+    "Año unión  N°1  " = 1
+  ) |> 
+  janitor::clean_names()
+tasmania
+```
+
+```{r}
+tasmania |> 
+  autoplot(takings, color ="darkviolet", size = 1.5)
+```
+
+We see that the Takings have an upward **trend**, yearly **seasonality**, and an increasing variance. We can try using a log
+
+```{r}
+tasmania |> 
+  autoplot(log(takings), color ="darkviolet", size = 1.5)
+```
+
+```{r}
+tasmania |> 
+  gg_season(log(takings))
+tasmania |> 
+  gg_subseries(log(takings))
+```
+
+```{r}
+tasmania |> 
+  gg_tsdisplay(log(takings), plot_type = "season")
+```
+
+```{r}
+stocks <- c("MCK", "META", "NVDA")
+stocks_data <- tq_get(
+  x = stocks,
+  get = "stock.prices",
+  from = "2010-01-01",
+  to = today() - 1
+)
+stocks_data
+
+stocks_data <- stocks_data |> 
+  as_tsibble(index = date, key = symbol)
+stocks_data
+```
+
+```{r}
+stocks_data |> 
+  ggplot(aes(x = date, y = close, color = symbol)) +
+  geom_line()
+```
+
+```{r}
+#| warning: false
+stocks_data |> 
+  ggplot(aes(x = date, open = open, high = high, low= low, close = close)) +
+  geom_candlestick() +
+  facet_wrap(~ symbol, ncol=2)
+```
+
+```{r}
+data("JohnsonJohnson")
+autoplot(JohnsonJohnson)+
+  ggtitle("Ventas")
+```
